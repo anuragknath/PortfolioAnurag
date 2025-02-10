@@ -152,11 +152,11 @@
     max-width: 1400px;
     margin: 0 auto;
     display: flex;
-    gap: 4rem; 
-    align-items: center; 
-    min-height: 80vh; 
+    flex-wrap: wrap;  /* Add this to allow wrapping */
+    gap: 4rem;
+    align-items: flex-start;  /* Change from center to flex-start */
+    min-height: 80vh;
 }
-
 .about-image {
     flex: 1.5; 
     transition: transform 0.5s ease;
@@ -295,6 +295,114 @@
                 font-size: 2rem;
             }
         }
+
+        .github-section {
+    flex: 1 1 100%;  /* Make it take full width */
+    background: var(--secondary-bg);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-top: 2rem;
+}
+
+.github-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.github-header img {
+    width: 24px;
+    height: 24px;
+}
+
+.github-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.github-stat {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-color);
+}
+
+.github-repos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.github-repo {
+    background: var(--bg-color);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.github-repo h4 {
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.repo-stats {
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.repo-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+
+
+@media (max-width: 768px) {
+    .about {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 2rem;
+    }
+
+    .about-image {
+        max-width: 90%;
+        margin-bottom: 2rem;
+    }
+
+    .github-section {
+        margin-top: 1rem;
+        padding: 1rem;
+    }
+    .github-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .github-repos {
+        grid-template-columns: 1fr;
+    }
+}
     </style>
 </head>
 <body>
@@ -342,8 +450,32 @@
                 <li style="margin-bottom: 0.5rem">• BSc. CS (Hons) (2019-2022) - St. Edmund's College (82.4%)</li>
             </ul>
         </div>
+        <div class="github-section">
+            <div class="github-header">
+                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
+                <h3>GitHub Activity</h3>
+            </div>
+            
+            <!-- GitHub Stats -->
+            <div id="github-stats" class="github-stats">
+                <div class="github-stat">
+                    <span class="stat-number">Loading...</span>
+                    <span class="stat-label">Repositories</span>
+                </div>
+            </div>
+            
+            <!-- Recent Repositories -->
+            <h3>Recent Repositories</h3>
+            <div id="github-repos" class="github-repos">
+                <div class="github-repo">Loading repositories...</div>
+            </div>
+        </div>
+            
+            
+        </div>
     </section>
-
+    
+    
     <!-- Projects Section -->
     <section id="projects" class="projects">
         <h2 style="text-align: center; margin-bottom: 2rem;">My Projects</h2>
@@ -459,11 +591,111 @@
             }
         });
         
-    function toggleProject(button) {
+        function toggleProject(button) {
         const details = button.nextElementSibling;
         details.style.display = details.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // GitHub API Service
+        class GitHubService {
+    constructor(username) {
+        this.username = username;
+        this.baseUrl = 'https://api.github.com';
+        this.headers = {
+            'Authorization': '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'
+        };
     }
+
+    async getProfile() {
+        try {
+            const response = await fetch(`${this.baseUrl}/users/${this.username}`, {
+                headers: this.headers
+            });
+            if (!response.ok) throw new Error('Profile not found');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            return null;
+        }
+    }
+
+    async getRepositories() {
+        try {
+            const response = await fetch(`${this.baseUrl}/users/${this.username}/repos?sort=updated&per_page=4`, {
+                headers: this.headers
+            });
+            if (!response.ok) throw new Error('Repositories not found');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching repositories:', error);
+            return [];
+        }
+    }
+
+    async getContributions() {
+        try {
+            const response = await fetch(`${this.baseUrl}/users/${this.username}/events?per_page=100`, {
+                headers: this.headers
+            });
+            if (!response.ok) throw new Error('Events not found');
+            const events = await response.json();
+            return events.slice(0, 10); // Get last 10 events
+        } catch (error) {
+            console.error('Error fetching contributions:', error);
+            return [];
+        }
+    }
+}
+
+// Initialize GitHub integration
+document.addEventListener('DOMContentLoaded', async () => {
+    const githubService = new GitHubService('anuragknath'); // Replace with your GitHub username
     
+    // Fetch GitHub data
+    const [profile, repositories, contributions] = await Promise.all([
+        githubService.getProfile(),
+        githubService.getRepositories(),
+        githubService.getContributions()
+    ]);
+
+    // Update GitHub stats
+    if (profile) {
+        document.getElementById('github-stats').innerHTML = `
+            <div class="github-stat">
+                <span class="stat-number">${profile.public_repos}</span>
+                <span class="stat-label">Repositories</span>
+            </div>
+            <div class="github-stat">
+                <span class="stat-number">${profile.followers}</span>
+                <span class="stat-label">Followers</span>
+            </div>
+            <div class="github-stat">
+                <span class="stat-number">${profile.following}</span>
+                <span class="stat-label">Following</span>
+            </div>
+        `;
+    }
+
+    // Update repositories
+    if (repositories.length > 0) {
+        document.getElementById('github-repos').innerHTML = repositories.map(repo => `
+            <div class="github-repo">
+                <h4>${repo.name}</h4>
+                <p>${repo.description || 'No description available'}</p>
+                <div class="repo-stats">
+                    <span>⭐ ${repo.stargazers_count}</span>
+                    <span>🔄 ${repo.forks_count}</span>
+                    <span>${repo.language || 'N/A'}</span>
+                </div>
+                <a href="${repo.html_url}" target="_blank" class="repo-link">View Repository</a>
+            </div>
+        `).join('');
+    }
+
+    // Update activity feed
+    
+});
+
 
     </script>
 </body>
